@@ -1,6 +1,6 @@
 ---
 title: "Data Analytics 2025"
-author: "Javier EzquerroSoriano"
+author: "Javier Ezquerro"
 output: 
   html_document:
     theme:
@@ -182,7 +182,6 @@ Each group (A and B) is represented with a different color.
 Points show actual values, and lines connect them to highlight trends.
 It allows visual comparison of how levels completed change with sessions for each group.
 ```{r}
-#3
 # Line plot: Levels completed vs Sessions per Group
 ggplot(DS, aes(x = sessions, y = levels, color = group)) +
   geom_line() +
@@ -202,136 +201,149 @@ ggplot(DS, aes(x = sessions, y = levels, color = group)) +
 
 ## Test 1
 
-The designers aim to investigate whether the players will have a playtime greater than 60 minutes in average.
-Can you answer this question using the current sample? Use a confidence level of 95%.
+The designers want to investigate whether players have an average playtime greater than 60 minutes.
 
 ### Research question
 Is the average playing time of the players significantly higher than 60 minutes?
 
 ### Hypotheses
-H₀: μ ≤ 60
-
-H₁: μ > 60
+- H₀: μ ≤ 60  
+- H₁: μ > 60  
 
 ### Type of test
-One sample, one-tailed test
+One-sample, one-tailed t-test (upper tail).
 
 ### Computations
+
 ```{r}
+# One-sample t-test: is mean playtime > 60?
+
 # Sample size
 n <- length(DS$playtime)
 
 # Sample mean
-x_bar <- mean(DS$playtime)
+mean_playtime <- mean(DS$playtime)
 
 # Sample standard deviation
-s <- sd(DS$playtime)
+sd_playtime <- sd(DS$playtime)
 
-#Mean according to H₀
+# Hypothesized mean under H0
 mu0 <- 60
 
-# Observed statistic
-t_stat <- (x_bar - mu0) / (s / sqrt(n))
+# Observed t statistic
+t_stat <- (mean_playtime - mu0) / (sd_playtime / sqrt(n))
 t_stat
 
-# P-value 
-p_value <- 1 - pt(t_stat, df = n-1)
+# Degrees of freedom
+df <- n - 1
+
+# One-sided p-value (H1: mean > 60)
+p_value <- 1 - pt(t_stat, df = df)
 p_value
 
 # Significance level
 alpha <- 0.05
 
-# Decision
-if(p_value < alpha){
-  print("Reject H0: the mean is significantly greater than 60")
+# Decision rule
+if (p_value < alpha) {
+  message("Reject H0: the mean playtime is significantly greater than 60 minutes.")
 } else {
-  print("Fail to reject H0: there is not enough evidence that the mean is > 60")
+  message("Fail to reject H0: not enough evidence that the mean playtime is > 60 minutes.")
 }
+
 ```
 
 ### Interpretation
 
-The average playtime of the players in the current sample is slightly above 60 minutes (𝑥=60.05). However, the observed difference from the hypothesized value of 60 minutes is not statistically significant at the 95% confidence level (p-value > 0.05).
+In this sample, the average playtime is slightly above 60 minutes (e.g. around 60.05 minutes). However, the one-sample t-test at the 5% significance level (one-sided) yields a p-value greater than 0.05.
 
-Therefore, we fail to reject the null hypothesis. This means there is not enough evidence to conclude that the average playtime of players is significantly greater than 60 minutes.
+Therefore, we fail to reject the null hypothesis. With 95% confidence, there is not enough evidence to conclude that the true mean playtime is significantly greater than 60 minutes.
 
 ## Test 2
 
-The indie studio tested two different versions of the game on the current users. 
-The users labeled as A downloaded the standard version of the game, while users in group B downloaded a new version with an improved reward system.
-The designers believed that the new reward system will produce higher playtime among the users. 
-Can you search in the data whether there is evidence to do such claim with
-95\% confidence level?
+The indie studio tested two different versions of the game on the current users.
+Users in Group A downloaded the standard version, while users in Group B downloaded a new version with an improved reward system.
+
+The designers expect that the new reward system will increase players’ average playtime.
 
 ### Research question
-Does the new version of the game with an improved reward system (Group B) result in higher average playtime compared to the standard version (Group A)?
+Does the new version of the game with an improved reward system (Group B) result in higher average playtime than the standard version (Group A)?
 
 ### Hypotheses
-Null hypothesis: H0: μB ≤ μA
-<br>
-Alternative hypothesis: H1: μB > μA 
+H₀: μ_B ≤ μ_A
+
+H₁: μ_B > μ_A
 
 ### Type of test
-Two independent samples, one-tailed test, upper tail.
+Two independent samples, one-tailed t-test (upper tail), assuming unequal variances (Welch t-test).
 
 ### Computations
 
 ```{r}
+# Two-sample t-test: is mean playtime in B > mean playtime in A?
+
+# Split data by group
+
+playtime_A <- DS$playtime[DS$group == "A"]
+playtime_B <- DS$playtime[DS$group == "B"]
+
 # Sample sizes
-n_A <- sum(DS$group == "A")
-n_B <- sum(DS$group == "B")
+
+n_A <- length(playtime_A)
+n_B <- length(playtime_B)
 
 # Sample means
-mean_A <- mean(DS$playtime[DS$group == "A"])
-mean_B <- mean(DS$playtime[DS$group == "B"])
+
+mean_A <- mean(playtime_A)
+mean_B <- mean(playtime_B)
 
 # Sample variances
-var_A <- var(DS$playtime[DS$group == "A"])
-var_B <- var(DS$playtime[DS$group == "B"])
 
-# Observed value
-t_obs <- (mean_B - mean_A) / sqrt(var_B/n_B + var_A/n_A)
+var_A <- var(playtime_A)
+var_B <- var(playtime_B)
 
-# Degrees of freedom
-df_num <- (var_B/n_B + var_A/n_A)^2
-df_den <- ( (var_B/n_B)^2 / (n_B - 1) ) + ( (var_A/n_A)^2 / (n_A - 1) )
+# Observed t statistic (Welch t-test)
+
+t_obs <- (mean_B - mean_A) / sqrt(var_B / n_B + var_A / n_A)
+t_obs
+
+# Welch–Satterthwaite approximation for degrees of freedom
+
+df_num <- (var_B / n_B + var_A / n_A)^2
+df_den <- ( (var_B / n_B)^2 / (n_B - 1) ) +
+( (var_A / n_A)^2 / (n_A - 1) )
 df <- df_num / df_den
+df
 
-# Critical t-value (upper tail)
-t_crit <- qt(0.95, df)
+# Significance level
 
-# p-value
-p_val <- 1 - pt(t_obs, df)
+alpha <- 0.05
+
+# Critical t-value for upper tail
+
+t_crit <- qt(1 - alpha, df = df)
+t_crit
+
+# One-sided p-value (H1: mean_B > mean_A)
+
+p_val <- 1 - pt(t_obs, df = df)
+p_val
+
+# Decision rule
+
+if (t_obs > t_crit & p_val < alpha) {
+message("Reject H0: the mean playtime in group B is significantly greater than in group A.")
+} else {
+message("Fail to reject H0: not enough evidence that group B has higher mean playtime.")
+}
 ```
 
-Sample sizes: nA = 767, nB = 733
-
-Means: XA = 55.50, XB = 64.81
-
-Variances:s^2A = 104.12, S^2B = 92.766
-
-Observed t-value: tobs = 18.17
-
-Critical t-value (upper tail, 95%): tcrit = 1.6458
-
-p-value: p ≈ 0
-
-Degrees of freedom (df) ~ 1497.77
-
-tobs = 18.17 vs tcrit = 1.65
-<br>
-Since, 
-<br>
-tobs > tcrit. 
-<br>
-We reject the null hypothesis.
-
 ### Interpretation
-With 95% confidence, the new version of the game with the improved reward system (Group B) results in higher average playtime than the standard version (Group A).
+In this sample, players in Group A (standard version) have an average playtime of about 55.50 minutes, while players in Group B (improved reward system) have an average playtime of about 64.81 minutes.
 
-On average, players in Group B played 64.81 minutes per session, while players in Group A played 55.50 minutes.
+The Welch two-sample t-test yields a very large observed t-value (around 18.17), much greater than the critical value (approximately 1.65 for a 5% one-sided test), and the p-value is effectively 0.
 
-The difference is significant, and the evidence strongly supports the designers’ claim.
+Therefore, we reject the null hypothesis. With 95% confidence, the data provide strong evidence that the new version with the improved reward system (Group B) leads to a significantly higher average playtime than the standard version (Group A).
 
 ------------------------------------------------
 
@@ -419,7 +431,7 @@ We begin by splitting the dataset into training (70%) and testing (30%) sets. Th
 We create a partition using user_type as the stratification variable so both sets preserve the original class proportions.
 ```{R}
 # Split the data into training (70%) and testing (30%)
-set.seed(123)
+set.seed(120)
 
 idx_class <- createDataPartition(y = DS$user_type, p = 0.70, list = FALSE)
 
